@@ -1,67 +1,60 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\Models\Profile;
+
+use App\Http\Requests\ProfileUpdateRequest;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Redirect;
+use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
-   public function index(){
+    /**
+     * Display the user's profile form.
+     */
+    public function edit(Request $request): View
+    {
+        return view('profile.edit', [
+            'user' => $request->user(),
+        ]);
+    }
 
-     $profiles = Profile::orderBy('id','desc')->get();
-     return view('profiles.listar',compact('profiles'));
+    /**
+     * Update the user's profile information.
+     */
+    public function update(ProfileUpdateRequest $request): RedirectResponse
+    {
+        $request->user()->fill($request->validated());
 
-   }
+        if ($request->user()->isDirty('email')) {
+            $request->user()->email_verified_at = null;
+        }
 
-   public function create(){
-    return view('profiles.create');
-   }
+        $request->user()->save();
 
-   public function store(Request $request){
-    $profile = new Profile();
-    $profile->titulo=$request->titulo;
-    $profile->descripcion=$request->decripcion;
+        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+    }
 
-    /*adjuntar archivo de hoja de vida*/
-    $file = $request->file("Archivo_hvida");
-    $hoja_vida = "pdf_" .time().".".$file->guessExtension();
-    $request->file('Archivo_hvida')->storeAs('public/imagenes', $hoja_vida);
-    $profile->Archivo_hvida = $hoja_vida;
-    /*fin hoja vida*/
+    /**
+     * Delete the user's account.
+     */
+    public function destroy(Request $request): RedirectResponse
+    {
+        $request->validateWithBag('userDeletion', [
+            'password' => ['required', 'current_password'],
+        ]);
 
-    /*adjunto foto*/
-    $file1 = $request->file("foto_perfil"); // Obtener el archivo de la solicitud
-    $foto_per = "photo_" . time() . "." . $file1->guessExtension(); // Generar un nombre único para el archivo de la foto de perfil
-    $request->file('foto_perfil')->storeAs('public/profile_photos', $foto_per); // Almacenar la foto de perfil
-    $profile->foto_perfil = $foto_per; // Asignar el nombre del archivo al atributo profile_photo_path del modelo User
-    /*fin foto*/
+        $user = $request->user();
 
-    $profile->save();
-    return $profile;
-   }
+        Auth::logout();
 
-   public function show(Profile $profile){
-    return view('profiles.show',compact('profile'));
-   }
+        $user->delete();
 
-   public function destroy (Profile $profile){
-    $profile->delete();
-    return redirect()->route('profile.index');
-   }
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
-   public function edit(Profile $profile){
-    return view('profiles.edit',compact('profile'));
-   }
-
-   public function update(Request $request, Profile $profile){
-
-    $profile->titulo=$request->titulo;
-    $profile->descripcion=$request->descripcion;
-    $profile->save();
-
-    return redirect()->route('profile.index');
-
-   }
-
-
+        return Redirect::to('/');
+    }
 }

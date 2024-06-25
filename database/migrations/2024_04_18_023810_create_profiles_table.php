@@ -17,6 +17,8 @@ return new class extends Migration
             $table->string('descripcion')->nullable();
             $table->string('Archivo_hvida');
             $table->string('foto_perfil');
+            $table->unsignedBigInteger('user_id');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->timestamps();
         });
     }
