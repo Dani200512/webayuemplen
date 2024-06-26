@@ -1,2 +1,3 @@
 
-<img src="{{ asset('iconos/empleo') }}" alt="20">
+<img src="{{ asset('iconos/empleo.png') }}" alt="Icono Empleo">
+
